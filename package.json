@@ -1,0 +1,8 @@
+{
+  "name": "pump-cycle",
+  "version": "0.0.1",
+  "scripts": {
+    "build": "mkdir -p dist && babel lib/pump-cycle.js > dist/pump-cycle",
+    "start": "babel-node lib/pump-cycle.js"
+  }
+}
