@@ -2,9 +2,8 @@
   "name": "pump-cycle",
   "version": "0.0.1",
   "scripts": {
-    "build": "mkdir -p dist && babel --stage 1 lib/pump-cycle.js > dist/pump-cycle.js",
-    "start": "babel-node --stage 1 lib/pump-cycle.js",
-    "test": "./node_modules/mocha/bin/mocha --compilers js:babel/register -t 10000 -c"
+    "build": "mkdir -p dist && ./node_modules/babel/bin/babel.js --stage 1 lib --out-dir dist",
+    "test": "./node_modules/mocha/bin/mocha --compilers js:babel/register -t 10000 -R list"
   },
   "dependencies": {
     "chalk": "^1.1.1",

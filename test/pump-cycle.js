@@ -29,10 +29,10 @@ describe("pump-cycle", () => {
   it("should fail if valves take longer than valve timeout to close", (done) => {
     testSystem({
       timeouts: {
-        closeValvesTimeout: 1000
+        closeValvesTimeout: 10
       },
       times: {
-        valve1CloseTime: 1500
+        valve1CloseTime: 15
       }
     })
     .subscribe(noop, () => done(), () => {
@@ -43,10 +43,10 @@ describe("pump-cycle", () => {
   it("should fail if priming takes longer than priming timeout", (done) => {
     testSystem({
       timeouts: {
-        primeTimeout: 1000
+        primeTimeout: 10
       },
       times: {
-        primeTime: 1500
+        primeTime: 15
       }
     })
     .subscribe(noop, (error) => done(), () => {
@@ -57,10 +57,10 @@ describe("pump-cycle", () => {
   it("should fail if pump takes longer than pump timeout to fill the tank", (done) => {
     testSystem({
       timeouts: {
-        pumpTimeout: 1000
+        pumpTimeout: 10
       },
       times: {
-        pumpTime: 1500
+        pumpTime: 15
       }
     })
     .subscribe(noop, () => done(), () => {
