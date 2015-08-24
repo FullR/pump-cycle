@@ -1,5 +1,10 @@
 "use strict";
 
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports["default"] = runCycle;
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
 
 var _rx = require("rx");
@@ -7,6 +12,18 @@ var _rx = require("rx");
 var _rx2 = _interopRequireDefault(_rx);
 
 var _lodash = require("lodash");
+
+var _utilIsTrue = require("./util/isTrue");
+
+var _utilIsTrue2 = _interopRequireDefault(_utilIsTrue);
+
+var _utilDelay = require("./util/delay");
+
+var _utilDelay2 = _interopRequireDefault(_utilDelay);
+
+var _testSystem = require("./test-system");
+
+var _testSystem2 = _interopRequireDefault(_testSystem);
 
 var Observable = _rx2["default"].Observable;
 var BehaviorSubject = _rx2["default"].BehaviorSubject;
@@ -23,9 +40,6 @@ var log = function log() {
     return console.log.apply(console, args);
   };
 };
-var isTrue = function isTrue(v) {
-  return !!v;
-};
 
 function outputSubject() {
   var initValue = arguments.length <= 0 || arguments[0] === undefined ? false : arguments[0];
@@ -38,7 +52,7 @@ function inputSubject() {
 
   return outputSubject();
 }
-
+console.log(Observable);
 function autoObservable() {
   var bodyFn = arguments.length <= 0 || arguments[0] === undefined ? _lodash.noop : arguments[0];
 
@@ -77,7 +91,7 @@ function runCycle(_ref) {
   var _ref2$primeDelay = _ref2.primeDelay;
   var primeDelay = _ref2$primeDelay === undefined ? 5000 : _ref2$primeDelay;
 
-  var valvesClosed = combineLatest([valve1Closed, valve2Closed], function (a, b) {
+  var valvesClosed = Observable.combineLatest([valve1Closed, valve2Closed], function (a, b) {
     return a && b;
   });
 
@@ -94,7 +108,7 @@ function runCycle(_ref) {
       return Observable.create(function (observer) {
         console.log("Closing valves...");
         outputs.closeValves.onNext(true);
-        var sub = valvesClosed.filter(isTrue).take(1).subscribe(function () {
+        var sub = valvesClosed.filter(_utilIsTrue2["default"]).take(1).subscribe(function () {
           console.log("Valves closed");
           observer.onNext();
           observer.onCompleted();
@@ -116,7 +130,7 @@ function runCycle(_ref) {
 
     function waitForPrime() {
       console.log("Waiting for prime signal...");
-      return primeComplete.filter(isTrue).take(1).map(function (v) {
+      return primeComplete.filter(_utilIsTrue2["default"]).take(1).map(function (v) {
         console.log("Prime signal received");
         return v;
       });
@@ -143,10 +157,10 @@ function runCycle(_ref) {
     function monitorTankAndPressure() {
       return Observable.create(function (observer) {
         console.log("Waiting for tank full and monitoring pressure");
-        var lowPressureObs = lowPressure.filter(isTrue).take(1).map(function () {
+        var lowPressureObs = lowPressure.filter(_utilIsTrue2["default"]).take(1).map(function () {
           throw new Error("low pressure");
         });
-        var tankFullObs = tankIsFull.filter(isTrue).take(1); //.merge(lowPressureObs);
+        var tankFullObs = tankIsFull.filter(_utilIsTrue2["default"]).take(1); //.merge(lowPressureObs);
         var sub = tankFullObs.merge(lowPressureObs).subscribe(function () {
           console.log("Finished pumping (tank is full)");
           observer.onNext();
@@ -173,17 +187,17 @@ function runCycle(_ref) {
     }
 
     var sub = maybeTimeout(closeValves(), closeValvesTimeout, "Close valves timeout reached")["do"](log("Waiting " + primeDelay + "ms to begin prime...")).flatMap(function () {
-      return delay(primeDelay);
+      return (0, _utilDelay2["default"])(primeDelay);
     }).flatMap(startPrimePump).flatMap(function () {
       return maybeTimeout(waitForPrime(), primeTimeout, "Priming timeout reached");
     }).flatMap(openValve).flatMap(function () {
       return maybeTimeout(startPump(), pumpTimeout, "Pumping timeout reached")["do"](log("Waiting " + pressureMonitorDelay + "ms to monitor pressure..."));
     }).flatMap(function () {
-      return delay(pressureMonitorDelay);
+      return (0, _utilDelay2["default"])(pressureMonitorDelay);
     }).flatMap(function () {
       return monitorTankAndPressure()["do"](log("Waiting " + postPumpValveDelay + "ms to close valves..."));
     }).flatMap(function () {
-      return delay(postPumpValveDelay);
+      return (0, _utilDelay2["default"])(postPumpValveDelay);
     }).flatMap(closeValves)["finally"](cleanUp).subscribe(_lodash.noop, function (error) {
       return observer.onError(error);
     }, function () {
@@ -197,81 +211,6 @@ function runCycle(_ref) {
   });
 }
 
-function delay(ms) {
-  return Observable.create(function (observer) {
-    var timeout = setTimeout(function () {
-      observer.onNext();
-      observer.onCompleted();
-    }, ms);
-
-    return function () {
-      return clearTimeout(timeout);
-    };
-  });
-}
-
-var inputs = {
-  valve1Closed: inputSubject(),
-  valve2Closed: inputSubject(),
-  valveOpened: inputSubject(),
-  primeComplete: inputSubject(),
-  lowPressure: inputSubject(),
-  tankIsFull: inputSubject(),
-  stopped: inputSubject()
-};
-
-function fakeProcess(name, ms, observer) {
-  var observedValue = arguments.length <= 3 || arguments[3] === undefined ? true : arguments[3];
-
-  console.log(name);
-  return delay(ms).map(function () {
-    observer.onNext(observedValue);
-  });
-}
-
-var cycle = runCycle(inputs).subscribe(function (outputs) {
-  var closeValves = outputs.closeValves;
-  var openValve = outputs.openValve;
-  var runPrime = outputs.runPrime;
-  var runPump = outputs.runPump;
-
-  var shouldFail = false;
-
-  closeValves.filter(isTrue).subscribe(function () {
-    setTimeout(function () {
-      inputs.valve1Closed.onNext(true);
-      inputs.valve2Closed.onNext(true);
-    }, 3000);
-  });
-
-  openValve.filter(isTrue).subscribe(function () {
-    setTimeout(function () {
-      inputs.valveOpened.onNext(true);
-    }, 3000);
-  });
-
-  runPrime.filter(isTrue).subscribe(function () {
-    setTimeout(function () {
-      inputs.primeComplete.onNext(true);
-    }, 3000);
-  });
-
-  runPump.filter(isTrue).subscribe(function () {
-    setTimeout(function () {
-      if (shouldFail) {
-        inputs.lowPressure.onNext(true);
-      } else {
-        inputs.tankIsFull.onNext(true);
-      }
-    }, 5000);
-  });
-}, function (error) {
-  console.log("Pumping failed:", error);
-}, function () {
-  console.log("done");
-});
-
-setTimeout(function () {
-  return cycle.dispose();
-}, 10000);
+// setTimeout(() => cycle.dispose(), 10000);
+module.exports = exports["default"];
 
