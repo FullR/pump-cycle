@@ -2,7 +2,11 @@
   "name": "pump-cycle",
   "version": "0.0.1",
   "scripts": {
-    "build": "mkdir -p dist && babel lib/pump-cycle.js > dist/pump-cycle",
-    "start": "babel-node lib/pump-cycle.js"
+    "build": "mkdir -p dist && babel --stage 1 lib/pump-cycle.js > dist/pump-cycle.js",
+    "start": "babel-node --stage 1 lib/pump-cycle.js"
+  },
+  "dependencies": {
+    "lodash": "^3.10.1",
+    "rx": "^3.1.1"
   }
 }
